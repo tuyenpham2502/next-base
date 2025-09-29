@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+
+# Environment files
+.env*
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Package manager files
+yarn.lock
+package-lock.json
+
+# Coverage reports
+coverage/
+
+# Husky files
+.husky/_/
