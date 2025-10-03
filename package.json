@@ -14,7 +14,8 @@
     "check": "run-p check:*",
     "fix:lint": "eslint src/**/*.{ts,tsx} --fix",
     "fix:format": "prettier --write .",
-    "fix": "run-p fix:*"
+    "fix": "run-p fix:*",
+    "gen:api": "node scripts/generate-crud.mjs"
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.13.8",
