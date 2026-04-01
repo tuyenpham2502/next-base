@@ -1,11 +1,15 @@
 import NetworkException from '@/application/exceptions/NetworkException';
 import type { RefreshTokenResponse } from '@/domain/models/Auth';
 // import { RefreshTokenResponse } from '@/domain/models/Auth';
-import LocalStorageService from '@/infrastructure/services/LocalStorageServiceImpl';
+import CookieStorageService from '@/infrastructure/services/CookieStorageService';
 import LoggerService from '@/infrastructure/services/LoggerServiceImpl';
 import { Constants } from '@/shared/constants';
 import { Endpoints } from '@/shared/endpoints';
-import { handleAccessToken, handleLogout } from '@/shared/helpers';
+import {
+  extractAuthPayload,
+  handleAccessToken,
+  handleLogout,
+} from '@/shared/helpers';
 import { QueryClient } from '@tanstack/react-query';
 import axios, {
   type AxiosInstance,
@@ -30,8 +34,8 @@ class HttpClient {
   private refreshQueue: Array<(token: string) => void> = [];
   private abortController: AbortController | null = null;
   private readonly loggerService: LoggerService = new LoggerService();
-  private readonly localStorageService: LocalStorageService =
-    new LocalStorageService();
+  private readonly storageService: CookieStorageService =
+    new CookieStorageService();
   private readonly TIMEOUT: number;
   private readonly queryClient: QueryClient = new QueryClient();
   constructor(timeout: number = Number(env.NEXT_PUBLIC_APP_TIMEOUT)) {
@@ -65,10 +69,8 @@ class HttpClient {
   private handleRequest(
     config: InternalAxiosRequestConfig
   ): InternalAxiosRequestConfig {
-    const token = this.localStorageService.readStorage(
-      Constants.API_TOKEN_STORAGE
-    );
-    const refreshToken = this.localStorageService.readStorage(
+    const token = this.storageService.readStorage(Constants.API_TOKEN_STORAGE);
+    const refreshToken = this.storageService.readStorage(
       Constants.API_REFRESH_TOKEN_STORAGE
     );
     if (token && config.url !== Endpoints.Auth.REFRESH_TOKEN) {
@@ -133,7 +135,7 @@ class HttpClient {
     }
 
     this.isRefreshing = true;
-    const refreshToken = this.localStorageService.readStorage(
+    const refreshToken = this.storageService.readStorage(
       Constants.API_REFRESH_TOKEN_STORAGE
     ) as string | null;
     if (!refreshToken) return this.handleLogout();
@@ -142,8 +144,11 @@ class HttpClient {
         Endpoints.Auth.REFRESH_TOKEN,
         {}
       );
-      const accessToken = data.token;
-      handleAccessToken(data, this.localStorageService);
+      const accessToken = extractAuthPayload(data)?.token;
+      if (!accessToken) {
+        return this.handleLogout();
+      }
+      handleAccessToken(data, this.storageService);
 
       this.refreshQueue.forEach(callback => callback(accessToken));
       this.refreshQueue = [];
@@ -157,7 +162,7 @@ class HttpClient {
   }
 
   private handleLogout(): void {
-    handleLogout(this.localStorageService, this.queryClient);
+    handleLogout(this.storageService, this.queryClient);
     window.location.assign('/auth/sign-in');
   }
 
