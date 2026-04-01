@@ -1,22 +1,26 @@
 import { useRepository } from '@/di/RepositoriesProvider';
 import { type LoginRequest } from '@/domain/models/Auth';
-import LocalStorageServiceImpl from '@/infrastructure/services/LocalStorageServiceImpl';
+import CookieStorageService from '@/infrastructure/services/CookieStorageService';
 import { handleAccessToken } from '@/shared/helpers';
 import { useRouter } from 'next/navigation';
-export const useLogin = () => {
+
+export const useSignIn = (callbackUrl = '/app') => {
   const router = useRouter();
-  const localStorageService = new LocalStorageServiceImpl();
+  const storageService = new CookieStorageService();
   const { authRepository } = useRepository();
   const { mutate: login, ...rest } = authRepository.login();
+
+  const completeSignIn = (data: unknown) => {
+    handleAccessToken(data, storageService);
+    router.push(callbackUrl);
+  };
 
   return {
     login: (credentials: LoginRequest) => {
       login(credentials, {
         onSuccess: data => {
-          handleAccessToken(data, localStorageService);
-          router.push('/');
+          completeSignIn(data);
         },
-        onError: (_error: any) => {},
       });
     },
     ...rest,

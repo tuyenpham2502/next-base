@@ -1,50 +1,62 @@
-import type { LocalStorageService } from '@/application/services/LocalStorageService';
+import type { BrowserStorageService } from '@/application/services/BrowserStorageService';
+import type { LoginResponse } from '@/domain/models/Auth';
+import CookieStorageService from '@/infrastructure/services/CookieStorageService';
 import type { QueryClient } from '@tanstack/react-query';
 import { Constants } from './constants';
 
 export const getListPermissionToken = () => {
-  let storage: any = localStorage.getItem(Constants.API_PERMISSION_STORAGE);
-  if (!storage) return [];
-  // Parse the JSON string into an array
-  try {
-    storage = JSON.parse(storage);
-    // Ensure the parsed value is an array
-    if (!Array.isArray(storage)) {
-      // Return empty array if parsed value is not an array
-      return [];
-    }
-  } catch (_error) {
-    // Return empty array if parsing fails
+  const storageService = new CookieStorageService();
+  const storage = storageService.readStorage(Constants.API_PERMISSION_STORAGE);
+  if (!Array.isArray(storage)) {
     return [];
   }
+
   return storage;
+};
+
+export const extractAuthPayload = (data: unknown): LoginResponse | null => {
+  if (typeof data !== 'object' || data === null) return null;
+
+  if ('data' in data && (data as { data?: LoginResponse }).data?.token) {
+    return (data as { data: LoginResponse }).data;
+  }
+
+  if ('token' in data && (data as LoginResponse).token) {
+    return data as LoginResponse;
+  }
+
+  return null;
 };
 
 export const handleAccessToken = (
   data: any,
-  localStorageService: LocalStorageService
+  storageService: BrowserStorageService
 ) => {
-  localStorageService.setStorage(Constants.API_TOKEN_STORAGE, data.token);
-  localStorageService.setStorage(
+  const authPayload = extractAuthPayload(data);
+  if (!authPayload) return;
+
+  storageService.setStorage(Constants.API_TOKEN_STORAGE, authPayload.token);
+  storageService.setStorage(
     Constants.API_REFRESH_TOKEN_STORAGE,
-    data.refreshToken
+    authPayload.refreshToken
   );
-  if (data.user) {
-    localStorageService.setStorage(Constants.API_PERMISSION_STORAGE, [
-      data.user.role.id,
+  if (authPayload.user) {
+    storageService.setStorage(Constants.API_PERMISSION_STORAGE, [
+      authPayload.user.id,
     ]);
+    storageService.setStorage(Constants.API_USER_STORAGE, authPayload.user);
   }
 };
 
 export const handleLogout = (
-  localStorageService: LocalStorageService,
+  storageService: BrowserStorageService,
   queryClient: QueryClient
 ) => {
   // clear cache react query
   queryClient.clear();
   queryClient.invalidateQueries();
-  localStorageService.removeStorage(Constants.API_TOKEN_STORAGE);
-  localStorageService.removeStorage(Constants.API_REFRESH_TOKEN_STORAGE);
+  storageService.removeStorage(Constants.API_TOKEN_STORAGE);
+  storageService.removeStorage(Constants.API_REFRESH_TOKEN_STORAGE);
 };
 
 export const convertListForInputSelect = (
@@ -65,6 +77,7 @@ export const convertListForInputSelect = (
 };
 
 export const isAuthenticated = () => {
-  const storage = localStorage.getItem(Constants.API_TOKEN_STORAGE);
+  const storageService = new CookieStorageService();
+  const storage = storageService.readStorage(Constants.API_TOKEN_STORAGE);
   return !!storage;
 };

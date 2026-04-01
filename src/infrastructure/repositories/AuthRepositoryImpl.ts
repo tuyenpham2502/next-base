@@ -21,7 +21,7 @@ import {
   usePostApi,
 } from '@/infrastructure/hooks/useApi';
 import { Endpoints } from '@/shared/endpoints';
-import { type QueryOptions } from '@tanstack/react-query';
+import { type QueryOptions } from '@/shared/types/react-query';
 
 export const AuthRepositoryImpl = (): AuthRepository => ({
   login: () =>
@@ -58,10 +58,10 @@ export const AuthRepositoryImpl = (): AuthRepository => ({
       endpoint: Endpoints.Auth.RESET_PASSWORD,
     }),
 
-  me: (options?: QueryOptions) =>
+  me: (options?: QueryOptions<ResponseCommon<User>>) =>
     useGetApi<ResponseCommon<User>>({
       endpoint: Endpoints.Auth.ME,
-      ...options,
+      options,
     }),
 
   updateMe: () =>

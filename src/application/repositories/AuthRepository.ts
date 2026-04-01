@@ -19,7 +19,7 @@ import {
   type usePatchApi,
   type usePostApi,
 } from '@/infrastructure/hooks/useApi';
-import { type QueryOptions } from '@tanstack/react-query';
+import { type QueryOptions } from '@/shared/types/react-query';
 
 export interface AuthRepository {
   login: () => ReturnType<
@@ -48,7 +48,7 @@ export interface AuthRepository {
     typeof usePostApi<ChangePasswordRequest, ResponseCommon<any>>
   >;
   me: (
-    options?: QueryOptions
+    options?: QueryOptions<ResponseCommon<User>>
   ) => ReturnType<typeof useGetApi<ResponseCommon<User>>>;
   updateMe: () => ReturnType<
     typeof usePatchApi<UpdateMeRequest, ResponseCommon<User>>
